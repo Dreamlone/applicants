@@ -71,23 +71,25 @@ def applications_per_faculties(df: pd.DataFrame, plot_path: Path):
         year_df['Faculty'] = year_df['Faculty'].replace(NAMES)
         year_df = year_df.sort_values(by='Faculty')
 
-        fig_size = (15.0, 6.0)
+        fig_size = (14.0, 5.0)
         fig, axs = plt.subplots(1, 2, figsize=fig_size)
         plt.suptitle(f'{year}', fontsize=20)
 
         axs[0].pie(np.array(year_df['ratio']), labels=LABELS,
                    autopct='%1.0f%%', colors=inner_colors,
-                   textprops={'color': '#353535', 'fontsize': 7}, startangle=45)
+                   textprops={'color': '#353535', 'fontsize': 7},
+                   startangle=45)
         axs[0].set_title(f'Number of applications per faculty')
 
         axs[1].pie(np.array(year_faculty_approved_df['ratio']),
                    labels=LABELS,
                    autopct='%1.0f%%', colors=inner_colors,
-                   textprops={'color': '#353535', 'fontsize': 7}, startangle=40)
+                   textprops={'color': '#353535', 'fontsize': 7},
+                   startangle=40)
         axs[1].set_title(f'Number of positions (approved applications) per faculty')
 
         plt.savefig(Path(tmp_folder_with_plots, f'{year}_faculties.png'),
-                    dpi=300, bbox_inches='tight')
+                    dpi=300)
         plt.close()
 
         if year in [2015, 2022]:

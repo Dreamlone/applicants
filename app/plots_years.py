@@ -31,10 +31,10 @@ def applications_per_year_by_gender(df: pd.DataFrame, plot_path: Path):
     plt.fill_between(males['Year.of.application'], [0] * len(males), males['Applicant.ID'],
                      alpha=.2, linewidth=0, color='blue', label='sent by males')
     plt.fill_between(females['Year.of.application'], males['Applicant.ID'], females['Applicant.ID'],
-                     alpha=.2, linewidth=0, color='red', label='sent by females')
+                     alpha=.2, linewidth=0, color='orange', label='sent by females')
     for i, row in females.iterrows():
         y_loc = row['Applicant.ID'] - 5000
-        ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='red')
+        ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='orange')
     for i, row in males.iterrows():
         y_loc = row['Applicant.ID'] - 5000
         ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='blue')
@@ -76,10 +76,10 @@ def accepted_applications_per_year_by_gender(df: pd.DataFrame, plot_path: Path):
     plt.fill_between(males['Year.of.application'], [0] * len(males), males['Applicant.ID'],
                      alpha=.2, linewidth=0, color='blue', label='males')
     plt.fill_between(females['Year.of.application'], males['Applicant.ID'], females['Applicant.ID'],
-                     alpha=.2, linewidth=0, color='red', label='females')
+                     alpha=.2, linewidth=0, color='orange', label='females')
     for i, row in females.iterrows():
         y_loc = row['Applicant.ID'] - 300
-        ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='red')
+        ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='orange')
     for i, row in males.iterrows():
         y_loc = row['Applicant.ID'] - 300
         ax.text(row['Year.of.application'] - 0.1, y_loc, f"{row['percent']:.0f}%", fontsize=12, c='blue')
