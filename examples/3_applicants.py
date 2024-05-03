@@ -1,6 +1,10 @@
 from pathlib import Path
 
 import pandas as pd
+import requests
+import geopandas
+from geopandas import GeoDataFrame
+from matplotlib import pyplot as plt
 
 from app.paths import get_data_path, eda_results_folder
 from app.plots_faculties import applications_per_faculties
@@ -50,23 +54,106 @@ PROGRAM_NAME = {"Bachelor's Programme in Psychology": "BS Psychology",
                 "Bachelor's Programme in Agricultural Sciences": "BS Agricultural Sciences"}
 
 
+def geocode_address_to_coordinates(address: str):
+    if address == 'Abroad':
+        return 59.5, 24.75
+
+    """ Geocoding procedure using free ArcGIS service """
+    params = {'SingleLine': address, 'outFields': '*', 'f': 'json',
+              'langCode': 'ENG', 'preferredLabelValues': 'matchedCity'}
+    url = 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates'
+    try:
+        response = requests.get(url, params=params)
+        candidates = response.json()['candidates']
+
+        first_assumption = candidates[0]
+        lat = first_assumption['location']['y']
+        lon = first_assumption['location']['x']
+    except Exception:
+        lat, lon = 0, 0
+
+    return lat, lon
+
+
+def prepare_points_layer(spatial_dataframe: pd.DataFrame,
+                         epsg_code: str = "4326",
+                         lon: str = 'lon',
+                         lat: str = 'lat') -> GeoDataFrame:
+    """
+    Prepare geopandas dataframe with points and spatial geometries from simple
+    pandas DataFrame
+
+    :param spatial_dataframe: table to convert
+    :param epsg_code: code for CRS
+    :param lon: name of column in pandas DataFrame with info about longitude
+    :param lat: name of column in pandas DataFrame with info about latitude
+    """
+    geometry = geopandas.points_from_xy(spatial_dataframe[lon].astype(float), spatial_dataframe[lat].astype(float))
+    gdf = GeoDataFrame(spatial_dataframe, crs=f"EPSG:{epsg_code}", geometry=geometry)
+    return gdf
+
+
 def explore_applicants():
     """ Show some patterns related to applicanta """
     df = pd.read_csv(Path(get_data_path(), 'applicant_data.csv'),
-                     sep=';', encoding='ISO-8859-1')
+                     sep=';', encoding='cp1252')
 
     plot_path = eda_results_folder('applicants')
 
+    # Generate maps
     df = df[['Applicant.ID', 'Year.of.application', 'Faculty', 'Degree.Programme',
              'Priority', 'Year.of.birth', 'First.time.applicant', 'Municipality',
              'Gender', 'Admission.status', 'previous.qualifications']]
     df = df.dropna()
     df['Degree.Programme'] = df['Degree.Programme'].replace(PROGRAM_NAME)
 
+    # Show some information about age
     for program in list(df['Degree.Programme'].unique()):
         df_program = df[df['Degree.Programme'] == program]
 
-        df_program
+        df_program['Age'] = df_program['Year.of.application'] - df_program['Year.of.birth']
+        print(f'{program}: Mean age {df_program["Age"].mean():.2f}')
+
+        # Information about location
+        if program == 'BS Psychology':
+            # per_location = df_program.groupby('Municipality').agg({'Applicant.ID': 'count'})
+            # per_location = per_location.reset_index()
+            # # Remove too small locations
+            # per_location = per_location[per_location['Applicant.ID'] >= 5]
+            #
+            # # Add coordinates
+            # lats = []
+            # longs = []
+            # for i, row in per_location.iterrows():
+            #     print(f'Receiving coordinates for {row["Municipality"]}')
+            #     lat, lon = geocode_address_to_coordinates(row['Municipality'])
+            #     lats.append(lat)
+            #     longs.append(lon)
+            #
+            # per_location['lat'] = lats
+            # per_location['lon'] = longs
+            per_location = pd.read_csv('program_with_locations.csv')
+            per_location = per_location[per_location['lat'] > 0]
+            per_location = prepare_points_layer(per_location)
+            # per_location = per_location.to_crs(epsg=3857)
+            per_location['ratio'] = per_location['Applicant.ID'] / per_location['Applicant.ID'].sum()
+
+            import contextily as cx
+
+            fig_size = (12.0, 9.0)
+            fig, ax = plt.subplots(figsize=fig_size)
+            ax = per_location.plot(zorder=1, alpha=0.9, column='ratio',
+                                   legend=True, cmap='Reds', markersize='ratio',
+                                   legend_kwds={'label': 'Number of applicants'})
+            cx.add_basemap(ax, crs=per_location.crs.to_string(),
+                           source=cx.providers.CartoDB.Voyager)
+            plt.title('Municipalities of applicants')
+
+            plt.savefig(Path(plot_path, f'applicants_map.png'))
+            plt.close()
+
+            print(f'Map was generated')
+            exit()
 
 
 if __name__ == '__main__':
