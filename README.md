@@ -1,3 +1,3 @@
 # applicants
 
-Repository with applicants analysis
+This repository contains scripts for analyzing applicant data
